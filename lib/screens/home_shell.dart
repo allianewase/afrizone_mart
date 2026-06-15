@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'create_task_screen.dart';
+import 'payments_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -21,9 +22,7 @@ class _HomeShellState extends State {
     final bodies = [
       const DashboardScreen(),
       const _Scaffolded(title: 'New Task', child: CreateTaskScreen()),
-      const _Scaffolded(
-          title: 'Payments',
-          child: Center(child: Text('Payments screen coming next'))),
+      const _Scaffolded(title: 'Payments', child: PaymentsScreen()),
     ];
 
     return Scaffold(
