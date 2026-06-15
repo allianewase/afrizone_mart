@@ -15,8 +15,8 @@ class DashboardScreen extends StatelessWidget {
         elevation: 0,
         title: Row(
           children: [
-            Text('AfriZone', style: AppText.serif(size: 20, color: Colors.white)),
-            Text('Mart', style: AppText.serif(size: 20, color: AppColors.orange)),
+            Text('Afrizone', style: AppText.serif(size: 20, color: Colors.white)),
+            Text('Part Time', style: AppText.serif(size: 20, color: AppColors.orange)),
           ],
         ),
         actions: const [

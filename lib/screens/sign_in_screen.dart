@@ -42,9 +42,9 @@ class SignInScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text('AfriZone',
+                          Text('Afrizone',
                               style: AppText.serif(size: 22, color: AppColors.navy)),
-                          Text('Mart',
+                          Text('Part Time',
                               style: AppText.serif(size: 22, color: AppColors.orange)),
                         ],
                       ),
