@@ -1,7 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import '../sign_in_screen.dart';
+
+// Get the device location, requesting permission if needed. Returns null (and
+// shows a message) if unavailable.
+Future<Position?> getLocation(BuildContext context) async {
+  if (!await Geolocator.isLocationServiceEnabled()) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Turn on location services')));
+    return null;
+  }
+  var perm = await Geolocator.checkPermission();
+  if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+  if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permission denied')));
+    return null;
+  }
+  // Try a fresh fix but don't hang forever (emulator GPS can stall); fall back
+  // to the last known position.
+  try {
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 8)),
+    );
+  } catch (_) {
+    final last = await Geolocator.getLastKnownPosition();
+    if (last != null) return last;
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not get your location')));
+    return null;
+  }
+}
 
 // ---- shared helpers ---------------------------------------------------------
 String naira(dynamic n) {
@@ -244,11 +272,55 @@ class WorkerApplicationsScreen extends StatefulWidget {
 }
 
 class _WorkerApplicationsScreenState extends State<WorkerApplicationsScreen> {
-  late Future<List> _future;
+  late Future<List> _future; // [applications, activeSession]
+  bool _busy = false;
+
   @override
   void initState() {
     super.initState();
-    _future = ApiService.myApplications();
+    _future = _load();
+  }
+
+  Future<List> _load() async {
+    final apps = await ApiService.myApplications();
+    final active = await ApiService.activeSession();
+    return [apps, active];
+  }
+
+  void _reload() => setState(() => _future = _load());
+
+  Future<void> _clockIn(Map app) async {
+    setState(() => _busy = true);
+    try {
+      final pos = await getLocation(context);
+      if (pos == null) return;
+      final res = await ApiService.clockIn(app['task_id'], pos.latitude, pos.longitude);
+      if (mounted) {
+        final fenced = res['within_geofence'] == true;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(fenced ? 'Clocked in (inside geofence)' : 'Clocked in')));
+        _reload();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'.replaceAll('Exception: ', ''))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _clockOut() async {
+    setState(() => _busy = true);
+    try {
+      final pos = await getLocation(context);
+      final res = await ApiService.clockOut(pos?.latitude ?? 0, pos?.longitude ?? 0);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Clocked out · ${res['hours']}h logged for approval')));
+        _reload();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'.replaceAll('Exception: ', ''))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -261,27 +333,73 @@ class _WorkerApplicationsScreenState extends State<WorkerApplicationsScreen> {
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) return _loading();
           if (snap.hasError) return _error('${snap.error}'.replaceAll('Exception: ', ''));
-          final apps = snap.data ?? [];
-          if (apps.isEmpty) return _empty('You haven\'t applied to any tasks yet.');
-          return Column(
-            children: apps.map((a) {
+          final apps = (snap.data?[0] ?? []) as List;
+          final active = (snap.data?[1] ?? {}) as Map;
+          final activeTaskId = active['active'] == true ? active['task_id'] : null;
+          return Column(children: [
+            if (activeTaskId != null) _activeCard(active),
+            if (apps.isEmpty) _empty('You haven\'t applied to any tasks yet.'),
+            ...apps.map((a) {
               final pay = a['pay_model'] == 'hourly' ? '${naira(a['rate'])}/hr' : naira(a['rate']);
+              final approved = a['status'] == 'approved';
+              final isActiveHere = activeTaskId == a['task_id'];
               return card(
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(a['task_title'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.text)),
                       const SizedBox(height: 3),
                       Text('${a['location'] ?? 'remote'} · $pay', style: const TextStyle(fontSize: 13, color: AppColors.text3)),
-                    ]),
-                  ),
-                  pill(a['status']),
+                    ])),
+                    pill(a['status']),
+                  ]),
+                  if (approved && !isActiveHere && activeTaskId == null) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, height: 40, child: ElevatedButton.icon(
+                      onPressed: _busy ? null : () => _clockIn(a),
+                      icon: const Icon(Icons.location_on_outlined, size: 18),
+                      label: const Text('Clock in'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy, foregroundColor: Colors.white, elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    )),
+                  ],
                 ]),
               );
-            }).toList(),
-          );
+            }),
+          ]);
         },
       ),
+    );
+  }
+
+  Widget _activeCard(Map active) {
+    final mins = (active['elapsed_minutes'] ?? 0) as int;
+    final hrs = mins ~/ 60, rem = mins % 60;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          const Text('CLOCKED IN', style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1, fontWeight: FontWeight.w600)),
+          const Spacer(),
+          if (active['within_geofence'] == true) pill('verified'),
+        ]),
+        const SizedBox(height: 10),
+        Text(active['task_title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 2),
+        Text('${hrs}h ${rem}m elapsed', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        const SizedBox(height: 14),
+        SizedBox(width: double.infinity, height: 42, child: ElevatedButton(
+          onPressed: _busy ? null : _clockOut,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: AppColors.navy, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          child: const Text('Clock out', style: TextStyle(fontWeight: FontWeight.w700)),
+        )),
+      ]),
     );
   }
 }

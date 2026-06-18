@@ -147,4 +147,12 @@ class ApiService {
   static Future<List> myNotifications() async => await getJson('/me/notifications') as List;
   static Future<Map<String, dynamic>> submitKyc(Map<String, dynamic> data) async =>
       Map<String, dynamic>.from(await postJson('/me/kyc', data) as Map);
+
+  // Time tracking & geofencing
+  static Future<Map<String, dynamic>> activeSession() async =>
+      Map<String, dynamic>.from(await getJson('/me/active') as Map);
+  static Future<Map<String, dynamic>> clockIn(int taskId, double lat, double lng) async =>
+      Map<String, dynamic>.from(await postJson('/me/clock-in', {'task_id': taskId, 'lat': lat, 'lng': lng}) as Map);
+  static Future<Map<String, dynamic>> clockOut(double lat, double lng) async =>
+      Map<String, dynamic>.from(await postJson('/me/clock-out', {'lat': lat, 'lng': lng}) as Map);
 }
