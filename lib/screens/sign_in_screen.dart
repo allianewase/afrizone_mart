@@ -1,14 +1,57 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/api_service.dart';
 import 'home_shell.dart';
+import 'worker/worker_shell.dart';
 
-class SignInScreen extends StatelessWidget {
+class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
-  void _enter(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeShell()),
+  @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await ApiService.login(
+      _emailController.text.trim(),
+      _passwordController.text,
     );
+
+    if (mounted) {
+      if (result['success']) {
+        // Route by role: staff -> admin shell, workers -> worker shell.
+        final role = (result['user']?['role'] ?? 'worker') as String;
+        final isStaff = role == 'task_manager' || role == 'hr_admin' || role == 'super_admin';
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => isStaff ? const HomeShell() : const WorkerShell(),
+          ),
+        );
+      } else {
+        setState(() {
+          _errorMessage = result['error'] ?? 'Login failed';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -75,7 +118,7 @@ class SignInScreen extends StatelessWidget {
                       color: AppColors.text2,
                       fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              _field(hint: 'you@afrizone.com'),
+              _field(hint: 'you@afrizone.com', controller: _emailController),
 
               const SizedBox(height: 18),
 
@@ -86,32 +129,59 @@ class SignInScreen extends StatelessWidget {
                       color: AppColors.text2,
                       fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              _field(hint: '••••••••••', obscure: true),
+              _field(hint: '••••••••••', controller: _passwordController, obscure: true),
 
               const SizedBox(height: 28),
+
+              // Error message
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    border: Border.all(color: Colors.red.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                  ),
+                ),
 
               // Sign in button
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => _enter(context),
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.navy,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     elevation: 0,
+                    disabledBackgroundColor: AppColors.text3,
                   ),
-                  child: const Text('Sign in',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Sign in',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
 
               const SizedBox(height: 20),
 
               const Center(
-                child: Text('Protected with two-factor authentication',
+                child: Text('Workers and managers sign in here.',
                     style: TextStyle(fontSize: 12, color: AppColors.text3)),
               ),
             ],
@@ -121,8 +191,13 @@ class SignInScreen extends StatelessWidget {
     );
   }
 
-  Widget _field({required String hint, bool obscure = false}) {
+  Widget _field({
+    required String hint,
+    required TextEditingController controller,
+    bool obscure = false,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         hintText: hint,
