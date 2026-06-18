@@ -73,7 +73,7 @@ Widget card({required Widget child, EdgeInsets? padding}) => Container(
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border),
       ),
       child: child,
@@ -213,12 +213,12 @@ class _WorkerTasksScreenState extends State<WorkerTasksScreen> {
                       applied
                           ? pill('applied')
                           : SizedBox(
-                              height: 36,
+                              height: 42,
                               child: ElevatedButton(
                                 onPressed: () => _apply(t),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.navy, foregroundColor: Colors.white, elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                                    shape: StadiumBorder()),
                                 child: const Text('Apply'),
                               ),
                             ),
@@ -360,7 +360,7 @@ class _WorkerApplicationsScreenState extends State<WorkerApplicationsScreen> {
                       icon: const Icon(Icons.location_on_outlined, size: 18),
                       label: const Text('Clock in'),
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy, foregroundColor: Colors.white, elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                          shape: StadiumBorder()),
                     )),
                   ],
                 ]),
@@ -379,7 +379,7 @@ class _WorkerApplicationsScreenState extends State<WorkerApplicationsScreen> {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(18)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
@@ -396,7 +396,7 @@ class _WorkerApplicationsScreenState extends State<WorkerApplicationsScreen> {
         SizedBox(width: double.infinity, height: 42, child: ElevatedButton(
           onPressed: _busy ? null : _clockOut,
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: AppColors.navy, elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              shape: StadiumBorder()),
           child: const Text('Clock out', style: TextStyle(fontWeight: FontWeight.w700)),
         )),
       ]),
@@ -541,7 +541,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                 SizedBox(width: double.infinity, height: 44, child: ElevatedButton(
                   onPressed: _completeKyc,
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy, foregroundColor: Colors.white, elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      shape: StadiumBorder()),
                   child: const Text('Complete KYC verification'),
                 )),
               ],

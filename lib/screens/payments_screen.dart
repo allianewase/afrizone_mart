@@ -101,8 +101,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                               backgroundColor: AppColors.navy,
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
+                              shape: const StadiumBorder(),
                             ),
                             child: Text(
                               p.note == 'review first'

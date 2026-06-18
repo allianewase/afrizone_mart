@@ -130,6 +130,9 @@ class CardLink extends StatelessWidget {
 
 BoxDecoration _cardBox() => BoxDecoration(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       border: Border.all(color: AppColors.border),
+      boxShadow: const [
+        BoxShadow(color: Color(0x0D000066), blurRadius: 22, offset: Offset(0, 6)),
+      ],
     );

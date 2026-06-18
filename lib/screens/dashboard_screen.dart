@@ -173,9 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 18),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(8)),
+                                    shape: const StadiumBorder(),
                                   ),
                                   child: const Text('Approve',
                                       style: TextStyle(

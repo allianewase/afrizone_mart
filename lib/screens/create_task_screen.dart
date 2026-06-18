@@ -80,8 +80,7 @@ class _CreateTaskScreenState extends State {
                 backgroundColor: AppColors.navy,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: AppColors.text3,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                shape: const StadiumBorder(),
                 elevation: 0,
               ),
               child: const Text('Publish task',

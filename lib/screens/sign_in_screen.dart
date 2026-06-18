@@ -157,8 +157,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.navy,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    shape: const StadiumBorder(),
                     elevation: 0,
                     disabledBackgroundColor: AppColors.text3,
                   ),
